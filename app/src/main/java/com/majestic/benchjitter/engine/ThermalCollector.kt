@@ -10,6 +10,7 @@ import android.hardware.SensorManager
 import android.os.BatteryManager
 import android.os.Build
 import android.os.PowerManager
+import com.majestic.benchjitter.i18n.tr
 import java.io.File
 import kotlin.math.abs
 import kotlin.math.max
@@ -112,7 +113,7 @@ internal fun socFamilyLabel(family: SocFamily): String = when (family) {
     SocFamily.QUALCOMM -> "Qualcomm (Snapdragon)"
     SocFamily.MEDIATEK -> "MediaTek (Dimensity/Helio)"
     SocFamily.GOOGLE_TENSOR -> "Google Tensor"
-    SocFamily.OTHER -> "не определено"
+    SocFamily.OTHER -> tr("не определено", "unknown")
 }
 
 /** Идентификация по Build.SOC_* (API 36+) либо /proc/cpuinfo; на старых ОС — OTHER. */
@@ -138,14 +139,14 @@ private fun plausibleTemp(v: Double): Boolean = v.isFinite() && v > -40.0 && v <
 
 /** Человекочитаемая метка PowerManager.getCurrentThermalStatus (API 29+). */
 internal fun thermalStatusLabel(status: Int): String = when (status) {
-    0 -> "Норма"
-    1 -> "Лёгкий нагрев"
-    2 -> "Умеренный нагрев"
-    3 -> "Сильный нагрев"
-    4 -> "Критический нагрев"
-    5 -> "Аварийное состояние"
-    6 -> "Готовность к thermal shutdown"
-    else -> "Неизвестно"
+    0 -> tr("Норма", "Normal")
+    1 -> tr("Лёгкий нагрев", "Mild warming")
+    2 -> tr("Умеренный нагрев", "Moderate warming")
+    3 -> tr("Сильный нагрев", "Strong heating")
+    4 -> tr("Критический нагрев", "Critical heating")
+    5 -> tr("Аварийное состояние", "Emergency state")
+    6 -> tr("Готовность к thermal shutdown", "Thermal shutdown imminent")
+    else -> tr("Неизвестно", "Unknown")
 }
 
 /**
@@ -319,7 +320,7 @@ class ThermalCollector(context: Context) {
         val battery = batteryTempNow()
         if (plausibleTemp(battery)) {
             batteryPeakC = if (batteryPeakC.isNaN() || battery > batteryPeakC) battery else batteryPeakC
-            readings.add(ThermalReading("Аккумулятор", battery, batteryPeakC))
+            readings.add(ThermalReading(tr("Аккумулятор", "Battery"), battery, batteryPeakC))
         }
         for (label in listOf("CPU", "GPU", "RAM")) {
             val v = lastC[label]

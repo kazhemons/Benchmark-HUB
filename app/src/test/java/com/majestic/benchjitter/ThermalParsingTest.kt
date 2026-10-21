@@ -8,13 +8,21 @@ import com.majestic.benchjitter.engine.isTempCandidateName
 import com.majestic.benchjitter.engine.SocFamily
 import com.majestic.benchjitter.engine.thermalStatusLabel
 import com.majestic.benchjitter.engine.zoneTempC
+import com.majestic.benchjitter.i18n.AppLang
+import com.majestic.benchjitter.i18n.appLang
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 
 class ThermalParsingTest {
+
+    @Before
+    fun forceRussian() {
+        appLang = AppLang.RU
+    }
 
     @Test
     fun batteryExtraIsInTenthsOfDegree() {

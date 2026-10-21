@@ -1,6 +1,7 @@
 package com.majestic.benchjitter.engine
 
 import android.os.Process
+import com.majestic.benchjitter.i18n.tr
 import com.majestic.benchjitter.stats.JitterStats
 import java.util.concurrent.locks.LockSupport
 
@@ -134,11 +135,11 @@ class WakeCollector {
 
         /** Подписи -> значения android.os.Process.* (в порядке возрастания важности). */
         val PRIORITIES: List<Pair<String, Int>> = listOf(
-            "Фон" to Process.THREAD_PRIORITY_BACKGROUND,
-            "Обычный" to Process.THREAD_PRIORITY_DEFAULT,
+            tr("Фон", "Background") to Process.THREAD_PRIORITY_BACKGROUND,
+            tr("Обычный", "Normal") to Process.THREAD_PRIORITY_DEFAULT,
             "Display" to Process.THREAD_PRIORITY_DISPLAY,
-            "Аудио" to Process.THREAD_PRIORITY_AUDIO,
-            "Срочный аудио" to Process.THREAD_PRIORITY_URGENT_AUDIO,
+            tr("Аудио", "Audio") to Process.THREAD_PRIORITY_AUDIO,
+            tr("Срочный аудио", "Urgent audio") to Process.THREAD_PRIORITY_URGENT_AUDIO,
         )
     }
 }

@@ -64,6 +64,7 @@ import com.majestic.benchjitter.engine.RomSnapshot
 import com.majestic.benchjitter.engine.ThermalCollector
 import com.majestic.benchjitter.engine.ThermalSnapshot
 import com.majestic.benchjitter.engine.WakeCollector
+import com.majestic.benchjitter.i18n.tr
 import com.majestic.benchjitter.stats.JitterStats
 import com.majestic.benchjitter.stats.StatsSnapshot
 import kotlinx.coroutines.awaitCancellation
@@ -316,14 +317,14 @@ private fun MainScreen() {
                     val ratioPct =
                         if (nominal > 0.0 && !snap.stdDevUs.isNaN()) snap.stdDevUs / nominal * 100.0 else Double.NaN
                     HeroPanel(
-                        caption = "Джиттер кадров — σ отклонений от номинала",
+                        caption = tr("Джиттер кадров — σ отклонений от номинала", "Frame jitter — σ of deviation from nominal"),
                         mainValue = if (snap.isEmpty) "—" else fmtUs(snap.stdDevUs),
                         ratioPct = ratioPct,
                         hasData = !snap.isEmpty,
                         subLines = listOf(
-                            "Номинал экрана: ${fmtHz(nominal)} · период ${fmtUs(if (nominal > 0) nominal else Double.NaN)}",
-                            "Замерено FPS: ${fmtFps(measuredFps)} · пропущено кадров: ${frames.missedFrames}",
-                            "Гэпов после паузы: ${frames.resyncGaps}",
+                            tr("Номинал экрана: ${fmtHz(nominal)} · период ${fmtUs(if (nominal > 0) nominal else Double.NaN)}", "Display nominal: ${fmtHz(nominal)} · period ${fmtUs(if (nominal > 0) nominal else Double.NaN)}"),
+                            tr("Замерено FPS: ${fmtFps(measuredFps)} · пропущено кадров: ${frames.missedFrames}", "Measured FPS: ${fmtFps(measuredFps)} · dropped frames: ${frames.missedFrames}"),
+                            tr("Гэпов после паузы: ${frames.resyncGaps}", "Resync gaps after pauses: ${frames.resyncGaps}"),
                         ),
                     )
                 }
@@ -331,14 +332,14 @@ private fun MainScreen() {
                     val ratioPct =
                         if (!snap.p99Us.isNaN()) snap.p99Us / wake.intervalUs * 100.0 else Double.NaN
                     HeroPanel(
-                        caption = "Задержки пробуждения — p99 опоздания",
+                        caption = tr("Задержки пробуждения — p99 опоздания", "Wake latencies — p99 lateness"),
                         mainValue = if (snap.isEmpty) "—" else fmtUs(snap.p99Us),
                         ratioPct = ratioPct,
                         hasData = !snap.isEmpty,
                         subLines = listOf(
-                            "Интервал: ${fmtMs(wake.intervalUs / 1000.0)} · приоритет: ${WakeCollector.PRIORITIES[priorityIndex].first}",
-                            "Просрочено меток: ${wake.missedDeadlines}",
-                            "Идеал — всё распределение вплотную у нуля",
+                            tr("Интервал: ${fmtMs(wake.intervalUs / 1000.0)} · приоритет: ${WakeCollector.PRIORITIES[priorityIndex].first}", "Interval: ${fmtMs(wake.intervalUs / 1000.0)} · priority: ${WakeCollector.PRIORITIES[priorityIndex].first}"),
+                            tr("Просрочено меток: ${wake.missedDeadlines}", "Missed deadlines: ${wake.missedDeadlines}"),
+                            tr("Идеал — всё распределение вплотную у нуля", "Ideal — the whole distribution sits tight against zero"),
                         ),
                     )
                 }
@@ -462,7 +463,7 @@ private fun HeaderRow(running: Boolean) {
         }
         Spacer(Modifier.size(6.dp))
         Text(
-            if (running) "идёт замер" else "готов",
+            if (running) tr("идёт замер", "measuring") else tr("готов", "ready"),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -586,9 +587,9 @@ private fun HeroPanel(
 
 private fun verdictText(ratioPct: Double): String = when {
     ratioPct.isNaN() -> ""
-    ratioPct < 2.0 -> "отлично"
-    ratioPct < 10.0 -> "хорошо"
-    else -> "плохо"
+    ratioPct < 2.0 -> tr("отлично", "excellent")
+    ratioPct < 10.0 -> tr("хорошо", "good")
+    else -> tr("плохо", "poor")
 }
 
 @Composable
@@ -619,15 +620,15 @@ private fun ControlsRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Button(onClick = if (running) onStop else onStart) {
-            Text(if (running) "Стоп" else "Пуск")
+            Text(if (running) tr("Стоп", "Stop") else tr("Пуск", "Start"))
         }
         OutlinedButton(onClick = onReset, enabled = !running && hasData) {
-            Text("Сброс")
+            Text(tr("Сброс", "Reset"))
         }
         Spacer(Modifier.weight(1f))
         val status = when {
-            running -> "идёт: ${fmtDuration(elapsedSec)}"
-            hasData -> "прогон: ${fmtDuration(elapsedSec)}"
+            running -> tr("идёт: ${fmtDuration(elapsedSec)}", "running: ${fmtDuration(elapsedSec)}")
+            hasData -> tr("прогон: ${fmtDuration(elapsedSec)}", "run: ${fmtDuration(elapsedSec)}")
             else -> "—"
         }
         Text(
@@ -648,9 +649,9 @@ private fun WakeControls(
     onPriorityChange: (Int) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Интервал пробуждения", style = MaterialTheme.typography.titleSmall)
+        Text(tr("Интервал пробуждения", "Wake interval"), style = MaterialTheme.typography.titleSmall)
         Text(
-            "Текущий: ${fmtMs(INTERVAL_OPTIONS_MS[intervalIndex])}",
+            tr("Текущий: ${fmtMs(INTERVAL_OPTIONS_MS[intervalIndex])}", "Current: ${fmtMs(INTERVAL_OPTIONS_MS[intervalIndex])}"),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -666,12 +667,12 @@ private fun WakeControls(
             }
         }
 
-        Text("Приоритет потока", style = MaterialTheme.typography.titleSmall)
+        Text(tr("Приоритет потока", "Thread priority"), style = MaterialTheme.typography.titleSmall)
         PriorityChipRow((0..2), priorityIndex, onPriorityChange)
         PriorityChipRow((3..4), priorityIndex, onPriorityChange)
 
         Text(
-            "Смена интервала во время замера начинает новый прогон; приоритет применяется на ходу.",
+            tr("Смена интервала во время замера начинает новый прогон; приоритет применяется на ходу.", "Changing the interval during a run starts a new run; priority applies on the fly."),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -697,12 +698,13 @@ private fun PriorityChipRow(indices: Iterable<Int>, selected: Int, onSelect: (In
 private fun StatsGrid(snap: StatsSnapshot) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            "mean/σ/перцентили — по последним ${snap.windowCount} сэмплам · min/max накопительные · всего сэмплов: ${snap.totalCount}",
+            tr("mean/σ/перцентили — по последним ${snap.windowCount} сэмплам · min/max накопительные · всего сэмплов: ${snap.totalCount}",
+                "mean/σ/percentiles — over the last ${snap.windowCount} samples · min/max cumulative · total samples: ${snap.totalCount}"),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         StatRow("mean", fmtUs(snap.meanUs), "σ", fmtUs(snap.stdDevUs))
-        StatRow("мин", fmtUs(snap.minUs), "макс", fmtUs(snap.maxUs))
+        StatRow(tr("мин", "min"), fmtUs(snap.minUs), tr("макс", "max"), fmtUs(snap.maxUs))
         StatRow("p50", fmtUs(snap.p50Us), "p90", fmtUs(snap.p90Us))
         StatRow("p95", fmtUs(snap.p95Us), "p99", fmtUs(snap.p99Us))
     }
@@ -761,10 +763,13 @@ private fun ChartsSection(
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         if (mode == BenchMode.FRAMES) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Интервалы кадров · отклонение от номинала", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    tr("Интервалы кадров · отклонение от номинала", "Frame intervals · deviation from nominal"),
+                    style = MaterialTheme.typography.titleSmall,
+                )
                 Spacer(Modifier.weight(1f))
                 Text(
-                    "пропущено: $missedFrames",
+                    tr("пропущено: $missedFrames", "dropped: $missedFrames"),
                     style = MaterialTheme.typography.labelMedium,
                     color = if (missedFrames > 0) bad else variant,
                 )
@@ -777,21 +782,21 @@ private fun ChartsSection(
                 Modifier.fillMaxWidth().height(140.dp),
             )
             if (nominalUs > 0.0) {
-                Text("Распределение интервалов (окно)", style = MaterialTheme.typography.labelMedium, color = variant)
+                Text(tr("Распределение интервалов (окно)", "Interval distribution (window)"), style = MaterialTheme.typography.labelMedium, color = variant)
                 DistributionChart(
                     snap.windowSorted, max(0.0, nominalUs * 0.5), nominalUs * 2.0, nominalUs * 1.5,
                     primary, bad, modifier = Modifier.fillMaxWidth().height(110.dp),
                 )
                 if (resyncGaps > 0) {
-                    Text("Гэпов (паузы приложения): $resyncGaps", style = MaterialTheme.typography.labelSmall, color = variant)
+                    Text(tr("Гэпов (паузы приложения): $resyncGaps", "Gaps (app pauses): $resyncGaps"), style = MaterialTheme.typography.labelSmall, color = variant)
                 }
             }
         } else {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Опоздания пробуждения относительно дедлайна", style = MaterialTheme.typography.titleSmall)
+                Text(tr("Опоздания пробуждения относительно дедлайна", "Wake latencies relative to deadline"), style = MaterialTheme.typography.titleSmall)
                 Spacer(Modifier.weight(1f))
                 Text(
-                    "просрочено: $missedDeadlines",
+                    tr("просрочено: $missedDeadlines", "missed: $missedDeadlines"),
                     style = MaterialTheme.typography.labelMedium,
                     color = if (missedDeadlines > 0) bad else variant,
                 )
@@ -802,7 +807,7 @@ private fun ChartsSection(
             )
             if (snap.windowSorted.isNotEmpty()) {
                 val hiUs = max(100.0, snap.windowSorted.last()) * 1.15
-                Text("Распределение опозданий (окно)", style = MaterialTheme.typography.labelMedium, color = variant)
+                Text(tr("Распределение опозданий (окно)", "Latency distribution (window)"), style = MaterialTheme.typography.labelMedium, color = variant)
                 DistributionChart(
                     snap.windowSorted, 0.0, hiUs, intervalUs / 2.0,
                     primary, bad, modifier = Modifier.fillMaxWidth().height(110.dp),
@@ -849,8 +854,8 @@ private fun buildParamsFor(
 @Composable
 private fun ReportRow(onCopy: () -> Unit, onShare: () -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        TextButton(onClick = onCopy) { Text("Скопировать отчёт") }
-        TextButton(onClick = onShare) { Text("Отправить") }
+        TextButton(onClick = onCopy) { Text(tr("Скопировать отчёт", "Copy report")) }
+        TextButton(onClick = onShare) { Text(tr("Отправить", "Share")) }
     }
 }
 

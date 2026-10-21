@@ -5,6 +5,27 @@
 устройства). Один экран, Jetpack
 Compose, Material 3 (dynamic color), без аккаунтов и разрешений.
 
+## Язык / Language
+
+Интерфейс, отчёты и описания режимов — на русском и английском. Язык выбирается
+по системной локали устройства: русская локаль → русский, любая другая →
+английский. Названия режимов и ярлыки метрик в отчёте всегда совпадают с
+экраном на обоих языках.
+
+## English (summary)
+
+A minimal Android benchmark: frame-interval jitter, thread wake latency, and
+CPU / RAM / CPU+RAM / GPU / ROM stress runs with device-thermal observation
+(CPU/GPU/RAM/battery temperatures via system thermal zones and sensors —
+Qualcomm, MediaTek and Google Tensor supported). Single screen, Jetpack Compose,
+Material 3 (dynamic color), no accounts, no permissions. There is also a
+read-only «Device» section: SoC family, core count and max frequencies, RAM,
+data-partition space, display specs — exportable as a report like every run.
+
+Each mode page ends with a full test passport (what the test measures and what
+every number means), and every run produces a shareable text report for
+comparing ROMs/devices in chat.
+
 ## Режимы
 
 ### 1. Джиттер кадров
