@@ -13,8 +13,8 @@ android {
         applicationId = "com.majestic.benchjitter"
         minSdk = 26
         targetSdk = 37
-        versionCode = 15
-        versionName = "1.5.1"
+        versionCode = 16
+        versionName = "1.5.2"
     }
 
     buildTypes {

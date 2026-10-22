@@ -22,6 +22,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -357,7 +358,7 @@ internal fun GpuTestControls(selected: GpuTest, onSelect: (GpuTest) -> Unit) {
 // интервалов и GPU-стадии — те же, что в тесте «Бублик». ----------
 
 @Composable
-internal fun OceanScene(active: Boolean) {
+internal fun OceanScene(active: Boolean, runToken: Int) {
     val webgpuOk = remember { mutableStateOf<Boolean?>(null) } // null — ещё не проверяли
     if (!active) {
         Surface(
@@ -393,43 +394,47 @@ internal fun OceanScene(active: Boolean) {
         }
         return
     }
-    val created = remember { mutableStateOf<WebView?>(null) }
-    AndroidView(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(420.dp),
-        factory = { ctx ->
-            WebView(ctx).apply {
-                setBackgroundColor(0xFF000000.toInt())
-                overScrollMode = View.OVER_SCROLL_NEVER
-                isHorizontalScrollBarEnabled = false
-                isVerticalScrollBarEnabled = false
-                settings.builtInZoomControls = false
-                settings.displayZoomControls = false
-                webChromeClient = object : WebChromeClient() {
-                    override fun onProgressChanged(view: WebView?, progress: Int) {
-                        if (progress == 100) {
-                            view?.evaluateJavascript("JSON.stringify(!!(window.navigator && window.navigator.gpu))") { raw ->
-                                webgpuOk.value = raw?.trim('"') == "true"
+    // key(runToken): Старт→Стоп→Старт не должен возвращать уничтожённый WebView —
+    // при смене токена ветка пересоздаётся целиком, factory гарантированно свежий.
+    key(runToken) {
+        val created = remember { mutableStateOf<WebView?>(null) }
+        AndroidView(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(420.dp),
+            factory = { ctx ->
+                WebView(ctx).apply {
+                    setBackgroundColor(0xFF000000.toInt())
+                    overScrollMode = View.OVER_SCROLL_NEVER
+                    isHorizontalScrollBarEnabled = false
+                    isVerticalScrollBarEnabled = false
+                    settings.builtInZoomControls = false
+                    settings.displayZoomControls = false
+                    webChromeClient = object : WebChromeClient() {
+                        override fun onProgressChanged(view: WebView?, progress: Int) {
+                            if (progress == 100) {
+                                view?.evaluateJavascript("JSON.stringify(!!(window.navigator && window.navigator.gpu))") { raw ->
+                                    webgpuOk.value = raw?.trim('"') == "true"
+                                }
                             }
                         }
                     }
+                    webViewClient = object : WebViewClient() {
+                        override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean = true
+                    }
+                    created.value = this
+                    loadUrl("file:///android_asset/ocean/index.html")
                 }
-                webViewClient = object : WebViewClient() {
-                    override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean = true
+            },
+        )
+        DisposableEffect(runToken) {
+            onDispose {
+                created.value?.let {
+                    it.stopLoading()
+                    it.destroy()
                 }
-                created.value = this
-                loadUrl("file:///android_asset/ocean/index.html")
+                created.value = null
             }
-        },
-    )
-    DisposableEffect(Unit) {
-        onDispose {
-            created.value?.let {
-                it.stopLoading()
-                it.destroy()
-            }
-            created.value = null
         }
     }
 }

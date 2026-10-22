@@ -410,7 +410,9 @@ private fun MainScreen() {
                 GpuTestControls(selected = gpuTest, onSelect = { gpuTest = it })
                 when (gpuTest) {
                     GpuTest.BAGEL -> GpuScene(active = running)
-                    GpuTest.OCEAN -> OceanScene(active = running)
+                    // runToken=tick: каждый Старт обязан создать новый WebView — иначе
+                    // Compose может восстановить уже уничтожённый экземпляр (пустая область)
+                    GpuTest.OCEAN -> OceanScene(active = running, runToken = tick)
                 }
             }
 
