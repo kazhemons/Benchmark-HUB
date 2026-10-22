@@ -20,13 +20,22 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import android.view.View
+import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import com.majestic.benchjitter.engine.CpuCollector
 import com.majestic.benchjitter.engine.CpuSnapshot
 import com.majestic.benchjitter.engine.RamSnapshot
@@ -155,16 +164,31 @@ internal fun RamHero(s: RamSnapshot) {
 }
 
 @Composable
-internal fun GpuHero(intervalSnap: StatsSnapshot, gpuSnap: StatsSnapshot, measuredFps: Double, supported: Boolean) {
+internal fun GpuHero(
+    intervalSnap: StatsSnapshot,
+    gpuSnap: StatsSnapshot,
+    measuredFps: Double,
+    supported: Boolean,
+    test: GpuTest,
+) {
     val gpuMeanMs = if (!gpuSnap.isEmpty) gpuSnap.meanUs / 1000.0 else Double.NaN
     StressHero(
-        caption = tr("Стресс GPU — тяжёлая сцена (сотни градиентных кругов, непрерывная анимация)", "GPU stress — heavy scene (hundreds of gradient circles, continuous animation)"),
+        caption = when (test) {
+            GpuTest.BAGEL ->
+                tr("Стресс GPU — тест «Бублик»: тяжёлая сцена (сотни градиентных кругов, непрерывная анимация)", "GPU stress — Bagel test: heavy scene (hundreds of gradient circles, continuous animation)")
+            GpuTest.OCEAN ->
+                tr("Стресс GPU — тест «Океан»: web-ocean (WebGPU) в WebView (FFT-волны, солнечные блики, небо)", "GPU stress — Ocean test: web-ocean (WebGPU) in a WebView (FFT waves, sun glitter, sky)")
+        },
         mainValue = if (!intervalSnap.isEmpty) "${fmtFps(measuredFps)} fps" else "—",
         subLines = listOf(
             if (supported)
                 tr("GPU-стадия кадра: mean ${fmtMs(gpuMeanMs)} · p95 ${fmtMs(gpuSnap.p95Us / 1000.0)} · p99 ${fmtMs(gpuSnap.p99Us / 1000.0)}", "Frame GPU stage: mean ${fmtMs(gpuMeanMs)} · p95 ${fmtMs(gpuSnap.p95Us / 1000.0)} · p99 ${fmtMs(gpuSnap.p99Us / 1000.0)}")
             else
                 tr("GPU-стадия кадра недоступна: FrameMetrics-подписка не принята этим устройством", "Frame GPU stage unavailable: FrameMetrics subscription not accepted by this device"),
+            when (test) {
+                GpuTest.BAGEL -> tr("Сцена рисуется движком UI приложения (HWUI)", "The scene is drawn by the app UI engine (HWUI)")
+                GpuTest.OCEAN -> tr("Сцена рендерится локально в WebView через WebGPU; кадры композитятся через окно приложения — метрики те же", "The scene renders locally in a WebView via WebGPU; frames composite through the app window — the metrics are identical")
+            },
             tr("Интервал кадров: σ ${fmtUs(intervalSnap.stdDevUs)} · пропуски смотрите на графике режима «Джиттер кадров»", "Frame intervals: σ ${fmtUs(intervalSnap.stdDevUs)} · see dropped frames on the Frame Jitter chart"),
         ),
     )
@@ -295,6 +319,117 @@ internal fun GpuScene(active: Boolean) {
                 center = Offset(cx, cy),
                 alpha = 0.75f,
             )
+        }
+    }
+}
+
+// ---------- Выбор теста GPU-нагрузки: «Бублик» / «Океан» ----------
+
+@Composable
+internal fun GpuTestControls(selected: GpuTest, onSelect: (GpuTest) -> Unit) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(tr("Тест GPU-нагрузки", "GPU load test"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                GpuTest.values().forEach { t ->
+                    FilterChip(
+                        selected = t == selected,
+                        onClick = { onSelect(t) },
+                        label = { Text(t.label) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ---------- Тест «Океан»: встроенный локально web-ocean (github.com/Noniv/web-ocean,
+// MIT; текст лицензии — assets/ocean/LICENSE). assets/ocean/index.html — его
+// однокоробочная сборка ocean.min.html с добавленной нами защитой WebGPU. Рендерит
+// в системном WebView; кадры композитятся в окне приложения, поэтому метрики
+// интервалов и GPU-стадии — те же, что в тесте «Бублик». ----------
+
+@Composable
+internal fun OceanScene(active: Boolean) {
+    val webgpuOk = remember { mutableStateOf<Boolean?>(null) } // null — ещё не проверяли
+    if (!active) {
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    tr(
+                        "«Океан» — встроенный локально web-ocean (github.com/Noniv/web-ocean, MIT): WebGPU-рендерер моря — Tessendorf FFT волны, барашки, солнечные блики, небо с облаками.",
+                        "Ocean — the bundled local web-ocean (github.com/Noniv/web-ocean, MIT): a WebGPU ocean renderer — Tessendorf FFT waves, whitecaps, sun glitter, sky with clouds.",
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    tr("Нажмите «Пуск»: сцена пойдёт в WebView; камеру двигают перетаскиванием по сцене.", "Press «Start»: the scene runs in a WebView; drag on the scene to move the camera."),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (webgpuOk.value == false) {
+                    Text(
+                        tr("WebGPU в WebView этого устройства отсутствует — нужен WebView на Chromium 121 или новее. Доступен тест «Бублик».", "This device's WebView has no WebGPU (a Chromium 121+ WebView is required). The Bagel test remains available."),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+        }
+        return
+    }
+    val created = remember { mutableStateOf<WebView?>(null) }
+    AndroidView(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(420.dp),
+        factory = { ctx ->
+            WebView(ctx).apply {
+                setBackgroundColor(0xFF000000.toInt())
+                overScrollMode = View.OVER_SCROLL_NEVER
+                isHorizontalScrollBarEnabled = false
+                isVerticalScrollBarEnabled = false
+                settings.builtInZoomControls = false
+                settings.displayZoomControls = false
+                webChromeClient = object : WebChromeClient() {
+                    override fun onProgressChanged(view: WebView?, progress: Int) {
+                        if (progress == 100) {
+                            view?.evaluateJavascript("JSON.stringify(!!(window.navigator && window.navigator.gpu))") { raw ->
+                                webgpuOk.value = raw?.trim('"') == "true"
+                            }
+                        }
+                    }
+                }
+                webViewClient = object : WebViewClient() {
+                    override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean = true
+                }
+                created.value = this
+                loadUrl("file:///android_asset/ocean/index.html")
+            }
+        },
+    )
+    DisposableEffect(Unit) {
+        onDispose {
+            created.value?.let {
+                it.stopLoading()
+                it.destroy()
+            }
+            created.value = null
         }
     }
 }

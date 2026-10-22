@@ -19,3 +19,13 @@ enum class BenchMode(val labelRu: String, val labelEn: String) {
     val label: String
         get() = tr(labelRu, labelEn)
 }
+
+/** Варианты теста режима «Стресс GPU»: выбор в UI и строка «тест» в отчёте. */
+enum class GpuTest(val labelRu: String, val labelEn: String) {
+    BAGEL("Бублик", "Bagel"),
+    OCEAN("Океан (WebGPU)", "Ocean (WebGPU)"),
+    ;
+
+    val label: String
+        get() = tr(labelRu, labelEn)
+}

@@ -120,6 +120,7 @@ private fun MainScreen() {
     var intervalIndex by rememberSaveable { mutableIntStateOf(1) }   // 1 мс
     var priorityIndex by rememberSaveable { mutableIntStateOf(1) }   // «Обычный»
     var cpuThreadsIdx by rememberSaveable { mutableIntStateOf(-1) }  // -1 = авто (мин(4, ядер))
+    var gpuTest by rememberSaveable { mutableStateOf(GpuTest.BAGEL) }
 
     val frames = remember { FrameCollector() }
     val wake = remember { WakeCollector() }
@@ -349,7 +350,7 @@ private fun MainScreen() {
                     cpuSnap?.let { CpuHero(it, cpuThreads) }
                     ramSnap?.let { RamHero(it) }
                 }
-                BenchMode.GPU -> GpuHero(snap, gpuSnap ?: emptySnap(), measuredFps, gpu.supported)
+                BenchMode.GPU -> GpuHero(snap, gpuSnap ?: emptySnap(), measuredFps, gpu.supported, gpuTest)
                 BenchMode.ROM -> romSnap?.let { RomHero(it) }
                 BenchMode.DEVICE -> deviceInfo?.let { DeviceHero(it) }
             }
@@ -406,7 +407,11 @@ private fun MainScreen() {
                 )
             }
             if (mode == BenchMode.GPU) {
-                GpuScene(active = running)
+                GpuTestControls(selected = gpuTest, onSelect = { gpuTest = it })
+                when (gpuTest) {
+                    GpuTest.BAGEL -> GpuScene(active = running)
+                    GpuTest.OCEAN -> OceanScene(active = running)
+                }
             }
 
             if (mode == BenchMode.FRAMES || mode == BenchMode.WAKE || mode == BenchMode.GPU) {
@@ -430,7 +435,7 @@ private fun MainScreen() {
                 val reportText = buildReport(
                     buildParamsFor(
                         mode, elapsedSec, snap, measuredFps, frames, wake, priorityIndex,
-                        cpuSnap, ramSnap, romSnap, gpuSnap, gpu.supported, thermalSnap, deviceInfo,
+                        cpuSnap, ramSnap, romSnap, gpuSnap, gpu.supported, gpuTest, thermalSnap, deviceInfo,
                     ),
                 )
                 ReportRow(
@@ -832,6 +837,7 @@ private fun buildParamsFor(
     romSnap: RomSnapshot?,
     gpuSnap: StatsSnapshot?,
     gpuSupported: Boolean,
+    gpuTest: GpuTest,
     thermalSnap: ThermalSnapshot?,
     deviceInfo: DeviceInfo?,
 ): ReportParams = ReportParams(
@@ -847,6 +853,7 @@ private fun buildParamsFor(
     rom = if (mode == BenchMode.ROM) romSnap else null,
     gpuMs = if (mode == BenchMode.GPU) gpuSnap else null,
     gpuSupported = gpuSupported,
+    gpuTestLabel = if (mode == BenchMode.GPU) gpuTest.label else null,
     thermal = if (observesThermalMode(mode)) thermalSnap else null,
     device = if (mode == BenchMode.DEVICE) deviceInfo else null,
 )

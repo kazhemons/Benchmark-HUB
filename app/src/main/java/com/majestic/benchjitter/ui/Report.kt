@@ -161,6 +161,7 @@ data class ReportParams(
     val rom: RomSnapshot? = null,
     val gpuMs: StatsSnapshot? = null,
     val gpuSupported: Boolean = false,
+    val gpuTestLabel: String? = null,
     val thermal: ThermalSnapshot? = null,
     val device: DeviceInfo? = null,
 )
@@ -333,6 +334,10 @@ fun buildReport(p: ReportParams): String {
         }
         BenchMode.GPU -> {
             val f = p.frame
+            p.gpuTestLabel?.let {
+                sb.value(tr("Тест GPU-нагрузки", "GPU load test"), it)
+                sb.line()
+            }
             sb.value(tr("Замерено FPS тяжёлой сцены", "Measured FPS of the heavy scene"), fmtFps(p.measuredFps))
             sb.value(tr("Пропущено кадров", "Missed frames"), f?.missedFrames ?: 0)
             sb.line()
